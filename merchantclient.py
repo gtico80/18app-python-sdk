@@ -6,12 +6,12 @@ import inspect
 from requests import Session
 from zeep.transports import Transport
 from zeep.wsse.signature import Signature
+from zeep.exceptions import Fault
 import logging.config
 
 class Voucher:
     """ Gestione dei voucher """
     def __init__(self, codiceVoucher, partitaIvaEsercente):
-        logging.warning('Voucher creato')
         self.codiceVoucher = codiceVoucher
         self.partitaIvaEsercente = partitaIvaEsercente
         session = Session()
@@ -24,8 +24,16 @@ class Voucher:
     """ Ritorna informazioni sul borsellino senza consumare il voucher
         e quindi senza scalare l’importo dal borsellino del beneficiario """
     def Verifica(self):
-        logging.warning('Voucher creato')
-        return self._Check(1)
+        try:
+            check = self._Check(1)
+            return check
+        except Exception as e:
+            print("Errore Ver")
+            print("Code " + e.code)
+            print("MEssage " + e.message)
+            detail = e.detail
+            print("TEXT " + detail.tag)
+            print(dir(e.detail))
 
     def Consuma(self):
         self._Check(2)
@@ -44,7 +52,6 @@ class Voucher:
                                "11aa22bb", self.partitaIvaEsercente)
             wsdl = merchantconfig.MerchantConfig.wsdl()
             checkResult = self._client.service.Check(check)
-            print('ok call checkresult')
             result = verificavoucherresult.VerificaVoucherResult(checkResult.ambito,
                                                                 checkResult.bene,
                                                                 checkResult.importo,
@@ -73,7 +80,10 @@ class Voucher:
                                            checkResult.nominativoBeneficiario)
             return result
         except Exception as e:
+            print("Errore ")
             logging.error(e)
+            logging.error(e.message)
+            raise
 
     def _Confirm(self, op):
         try:
